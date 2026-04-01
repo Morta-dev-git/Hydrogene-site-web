@@ -3,65 +3,607 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hydrogène Vert</title>
-
-    <!-- LIAISON AVEC CSS MODERNE -->
+    <meta name="description" content="Journée sur l'hydrogène vert — Pilier de la transition énergétique — Association Osiris × FST">
+    <title>H₂ Event</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="icon" type="image/svg+xml" href="/logo.svg">
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+    <script type="module" src="3D_Molecule.js"></script>
 </head>
 <body>
 
-<!-- HEADER -->
-<header>
-    <h1>L’hydrogène vert</h1>
-    <p>Pilier de la transition énergétique</p>
-</header>
+    <!-- Grain texture overlay -->
+    <div class="grain-overlay" aria-hidden="true"></div>
 
-<!-- INFORMATIONS -->
-<section class="card">
-    <h2>Informations</h2>
-    <p><strong>Date :</strong> 7 Mai 2026</p>
-    <p><strong>Heure :</strong> 08h30</p>
-    <p><strong>Lieu :</strong> Faculté des Sciences de Tunis</p>
+    <!-- ══ NAVIGATION ══════════════════════════════════════ -->
+    <nav class="navbar" id="top">
+        <div class="nav-container">
+            <a href="#accueil" class="logo" aria-label="Accueil">
+                <div class="logo-molecule" aria-hidden="true">
+                    <span class="atom atom-center"></span>
+                    <span class="atom atom-left"></span>
+                    <span class="atom atom-right"></span>
+                    <span class="bond bond-left"></span>
+                    <span class="bond bond-right"></span>
+                </div>
+                <div class="logo-text">
+                    <span class="logo-title">Hydrogène Vert</span>
+                    <span class="logo-sub">Transition énergétique · 2026</span>
+                </div>
+            </a>
+
+            <button class="nav-toggle" id="navToggle" aria-label="Menu" aria-expanded="false">
+                <span></span><span></span><span></span>
+            </button>
+
+            <ul class="nav-menu" id="navMenu" role="list">
+                <li><a href="#accueil">Accueil</a></li>
+                <li><a href="#programme">Programme</a></li>
+                <li><a href="#comites">Comités</a></li>
+                <li><a href="#informations">Informations</a></li>
+                <li><a href="#contact">Contact</a></li>
+            </ul>
+            <a href="#inscription" class="btn-register">S'inscrire</a>
+        </div>
+    </nav>
+
+    <!-- ══ ORGANIZERS STRIP ═══════════════════════════════ -->
+    <div class="org-strip" aria-label="Organisateurs">
+        <div class="org-strip-inner">
+            <span class="org-strip-label">Organisé par</span>
+            <div class="org-logos">
+
+                <a href="https://fst.rnu.tn" target="_blank" rel="noopener" class="org-logo-link" aria-label="Faculté des Sciences de Tunis">
+                    <img src="https://upload.wikimedia.org/wikipedia/fr/thumb/8/8d/FSTLOGO.svg/1280px-FSTLOGO.svg.png"
+                         alt="Faculté des Sciences de Tunis"
+                         class="org-logo"
+                         loading="lazy">
+                </a>
+
+                <div class="org-divider" aria-hidden="true"></div>
+
+                <a href="https://utm.rnu.tn/utm" target="_blank" rel="noopener" class="org-logo-link" aria-label="FST">
+                    <img src="https://medsal.eu/wp-content/uploads/2019/10/FST.png"
+                         alt="FST"
+                         class="org-logo org-logo-dark"
+                         loading="lazy"
+                         onerror="this.closest('.org-logo-link').style.display='none'">
+                </a>
+
+                <div class="org-divider" aria-hidden="true"></div>
+
+                <a href="https://www.facebook.com/ED.MISTM.FST" class="org-logo-link" aria-label="Association Osiris">
+                    <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRdRazgHYM0N3q2amsRP8I_qn0bgrRzyqN2Pw&s"
+                         alt="Association Osiris"
+                         class="org-logo"
+                         loading="lazy"
+                         onerror="this.closest('.org-logo-link').style.display='none'">
+                </a>
+
+                <div class="org-divider" aria-hidden="true"></div>
+                <a href="https://www.facebook.com/associationscientifiqueosiris" target="_blank" rel="noopener" class="org-logo-link" aria-label="Université de Tunis El Manar">
+                    <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ7IGQ4i5VWXSt6A733IxHSTTN2BJrWgxeELw&s"
+                         alt="Université de Tunis El Manar"
+                         class="org-logo"
+                         loading="lazy"
+                         onerror="this.closest('.org-logo-link').style.display='none'">
+                </a>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- ══ HERO ════════════════════════════════════════════ -->
+    <header id="accueil" class="hero">
+        <div class="hero-bg-image"></div>
+        <div class="hero-colour-wash"></div>
+
+        <!-- Floating bubbles (CSS-only) -->
+        <div class="bubbles" aria-hidden="true">
+            <span class="bubble b1"></span><span class="bubble b2"></span>
+            <span class="bubble b3"></span><span class="bubble b4"></span>
+            <span class="bubble b5"></span><span class="bubble b6"></span>
+            <span class="bubble b7"></span>
+        </div>
+
+        <div class="hero-content">
+            <div class="hero-eyebrow">
+                <span class="dot"></span>Association Osiris × Faculté des Sciences de Tunis
+            </div>
+            <h1 class="hero-title">
+                <em>L'hydrogène vert</em>
+            </h1>
+            <p class="hero-sub">Pilier de la transition énergétique</p>
+            <p class="hero-desc">
+                Conférence scientifique dédiée aux technologies de l'hydrogène vert,
+                à ses enjeux industriels et à son rôle central dans la décarbonation de notre futur énergétique.
+            </p>
+            <div class="hero-actions">
+                <a href="#programme" class="btn-outline-hero">
+                    <i class="fas fa-calendar-days" aria-hidden="true"></i> Voir le programme
+                </a>
+                <a href="#inscription" class="btn-solid-hero">
+                    S'inscrire gratuitement <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                </a>
+            </div>
+            <div class="hero-meta">
+                <span><i class="far fa-calendar" aria-hidden="true"></i> 7 Mai 2026</span>
+                <span class="sep">·</span>
+                <span><i class="fas fa-location-dot" aria-hidden="true"></i> FST · Amphithéâtre principal</span>
+                <span class="sep">·</span>
+                <span><i class="fas fa-ticket" aria-hidden="true"></i> Entrée gratuite</span>
+            </div>
+        </div>
+
+        <div class="hero-wave" aria-hidden="true">
+            <svg viewBox="0 0 1440 90" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M0,40 C360,90 1080,0 1440,50 L1440,90 L0,90 Z"/>
+            </svg>
+        </div>
+    </header>
+
+    <!-- ══ MAIN CONTENT ════════════════════════════════════ -->
+    <main>
+
+        <!-- STATS BAND ─────────────────────────────────── -->
+        <section class="stats-band" aria-label="Chiffres clés">
+            <div class="container">
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-num">20<span>%</span></div>
+                        <p>de réduction des émissions de CO₂ possible dès 2030</p>
+                    </div>
+                    <div class="stat-divider" aria-hidden="true"></div>
+                    <div class="stat-item">
+                        <div class="stat-num">50<span>%</span></div>
+                        <p>de l'énergie renouvelable stockable via H₂ vert</p>
+                    </div>
+                    <div class="stat-divider" aria-hidden="true"></div>
+                    <div class="stat-item">
+                        <div class="stat-num">70<span>%</span></div>
+                        <p>des transports pourraient être alimentés par H₂ d'ici 2050</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- INTRO SPLIT ─────────────────────────────────── -->
+        <section class="intro-split container" aria-label="À propos">
+             <div class="intro-visual">
+                <div class="mol3d-wrap" id="mol3dWrap">
+                    <canvas id="molCanvas" aria-label="Molécule H₂O interactive 3D"></canvas>
+                    <div class="mol3d-label" aria-hidden="true">
+                        <span class="mol3d-eq">H₂O &rarr; H₂ + ½O₂</span>
+                        <span class="mol3d-hint"><i class="fas fa-hand-pointer"></i> Glisser pour pivoter</span>
+                    </div>
+                    <!-- Atom legend -->
+                    <div class="mol3d-legend" aria-hidden="true">
+                        <span class="leg-o"><span class="leg-dot"></span> Oxygène</span>
+                        <span class="leg-h"><span class="leg-dot"></span> Hydrogène</span>
+                        <span class="leg-e"><span class="leg-dot"></span> Électrons</span>
+                    </div>
+                </div>
+            </div>
+            <div class="intro-text">
+                <span class="section-eyebrow">Pourquoi l'hydrogène ?</span>
+                <h2>Un vecteur d'énergie propre&nbsp;<em>au cœur de la science</em></h2>
+                <p>
+                    Produit par électrolyse de l'eau à l'aide d'électricité renouvelable, l'hydrogène vert
+                    représente une solution sans émissions de carbone pour stocker l'énergie, décarboner
+                    l'industrie lourde et alimenter les mobilités de demain.
+                </p>
+                <p>
+                    Cette journée scientifique réunit chercheurs, ingénieurs, doctorants et professionnels
+                    autour des dernières avancées sur la production, le stockage et les applications de
+                    l'hydrogène vert en Tunisie et dans la région méditerranéenne.
+                </p>
+                <a href="#programme" class="link-arrow">Explorer le programme <i class="fas fa-arrow-right" aria-hidden="true"></i></a>
+            </div>
+        </section>
+
+        <!-- WAVE DIVIDER -->
+        <div class="wave-divider wave-down" aria-hidden="true">
+            <svg viewBox="0 0 1440 60" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M0,30 C480,60 960,0 1440,30 L1440,60 L0,60 Z"/>
+            </svg>
+        </div>
+
+        <!-- INFORMATIONS ─────────────────────────────────── -->
+        <section id="informations" class="info-section" aria-label="Informations pratiques">
+    <div class="container">
+        <header class="section-header">
+            <span class="section-eyebrow">L'événement</span>
+            <h2>Informations <em>pratiques</em></h2>
+            <div class="header-rule"></div>
+        </header>
+
+        <div class="info-grid">
+            <article class="info-card card-date">
+                <h3>Date</h3>
+                <strong>7 Mai 2026</strong>
+                <span>08h30 – 16h30</span>
+            </article>
+
+            <article class="info-card card-location">
+                <h3>Lieu</h3>
+                <strong>Faculté des Sciences de Tunis</strong>
+                <span>Amphithéâtre principal</span>
+            </article>
+
+            <article class="info-card card-public">
+                <h3>Public cible</h3>
+                <strong>Étudiants · Chercheurs</strong>
+                <span>Enseignants · Professionnels</span>
+            </article>
+
+            <article class="info-card card-participation">
+                <h3>Participation</h3>
+                <strong>Gratuite</strong>
+                <span>Attestations de présence</span>
+            </article>
+        </div>
+    </div>
 </section>
 
-<!-- PROGRAMME -->
-<section class="card">
-    <h2>Programme</h2>
-    <ul>
-        <li>08h30 – 09h30 : Accueil et inscription</li>
-        <li>09h30 – 10h00 : Ouverture officielle</li>
-        <li>10h00 – 12h30 : Conférences scientifiques</li>
-        <li>12h30 – 13h30 : Pause déjeuner</li>
-        <li>13h30 – 14h30 : Posters et discussions</li>
-        <li>14h30 – 15h30 : Table ronde</li>
-        <li>15h30 – 16h30 : Clôture</li>
-    </ul>
-</section>
+        <!-- WAVE DIVIDER -->
+        <div class="wave-divider wave-up" aria-hidden="true">
+            <svg viewBox="0 0 1440 60" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M0,30 C480,0 960,60 1440,30 L1440,0 L0,0 Z"/>
+            </svg>
+        </div>
 
-<!-- PUBLIC CIBLE -->
-<section class="card">
-    <h2>Public cible</h2>
-    <p>Étudiants – Chercheurs – Enseignants – Professionnels</p>
-</section>
+        <!-- PROGRAMME ─────────────────────────────────────── -->
+        <section id="programme" class="programme-section" aria-label="Programme scientifique">
+            <div class="container">
+                <header class="section-header">
+                    <span class="section-eyebrow">Déroulé de la journée</span>
+                    <h2>Programme <em>scientifique</em></h2>
+                    <div class="header-rule"></div>
+                    <p class="section-desc">Une journée riche en découvertes, échanges et perspectives d'avenir</p>
+                </header>
 
-<!-- DATES CLÉS -->
-<section class="card">
-    <h2>Dates clés</h2>
-    <p><strong>Soumission posters :</strong> 10 avril 2026</p>
-    <p><strong>Inscription :</strong> 15 avril 2026</p>
-</section>
+                <ol class="timeline" role="list">
+                    <li class="timeline-item tl-registration">
+                        <div class="tl-time">08:30</div>
+                        <div class="tl-connector"><span class="tl-dot"></span></div>
+                        <div class="tl-body">
+                            <div class="tl-icon-wrap"><i class="fas fa-id-badge" aria-hidden="true"></i></div>
+                            <div class="tl-text">
+                                <h4>Accueil &amp; Inscriptions</h4>
+                                <p>Remise des badges, de la documentation et café de bienvenue</p>
+                            </div>
+                            <div class="tl-duration">09:30</div>
+                        </div>
+                    </li>
+                    <li class="timeline-item tl-opening">
+                        <div class="tl-time">09:30</div>
+                        <div class="tl-connector"><span class="tl-dot"></span></div>
+                        <div class="tl-body">
+                            <div class="tl-icon-wrap"><i class="fas fa-microphone-lines" aria-hidden="true"></i></div>
+                            <div class="tl-text">
+                                <h4>Ouverture officielle</h4>
+                                <p>Discours des représentants institutionnels et des organisateurs</p>
+                            </div>
+                            <div class="tl-duration">10:00</div>
+                        </div>
+                    </li>
+                    <li class="timeline-item tl-conference">
+                        <div class="tl-time">10:00</div>
+                        <div class="tl-connector"><span class="tl-dot tl-dot-accent"></span></div>
+                        <div class="tl-body">
+                            <div class="tl-icon-wrap tl-icon-accent"><i class="fas fa-flask" aria-hidden="true"></i></div>
+                            <div class="tl-text">
+                                <h4>Conférences scientifiques</h4>
+                                <p>Interventions d'experts nationaux et internationaux sur l'hydrogène vert</p>
+                            </div>
+                            <div class="tl-duration">12:30</div>
+                        </div>
+                    </li>
+                    <li class="timeline-item tl-lunch">
+                        <div class="tl-time">12:30</div>
+                        <div class="tl-connector"><span class="tl-dot"></span></div>
+                        <div class="tl-body">
+                            <div class="tl-icon-wrap"><i class="fas fa-utensils" aria-hidden="true"></i></div>
+                            <div class="tl-text">
+                                <h4>Pause déjeuner &amp; Networking</h4>
+                                <p>Moment d'échanges informels entre participants et intervenants</p>
+                            </div>
+                            <div class="tl-duration">14:00</div>
+                        </div>
+                    </li>
+                    <li class="timeline-item tl-posters">
+                        <div class="tl-time">14:00</div>
+                        <div class="tl-connector"><span class="tl-dot tl-dot-accent"></span></div>
+                        <div class="tl-body">
+                            <div class="tl-icon-wrap tl-icon-accent"><i class="fas fa-layer-group" aria-hidden="true"></i></div>
+                            <div class="tl-text">
+                                <h4>Session Posters &amp; Discussions</h4>
+                                <p>Présentation des travaux de recherche par les doctorants et chercheurs</p>
+                            </div>
+                            <div class="tl-duration">15:30</div>
+                        </div>
+                    </li>
+                    <li class="timeline-item tl-closing">
+                        <div class="tl-time">15:30</div>
+                        <div class="tl-connector"><span class="tl-dot"></span></div>
+                        <div class="tl-body">
+                            <div class="tl-icon-wrap"><i class="fas fa-award" aria-hidden="true"></i></div>
+                            <div class="tl-text">
+                                <h4>Clôture &amp; Remise des attestations</h4>
+                                <p>Cérémonie de clôture et remise des certificats de participation</p>
+                            </div>
+                            <div class="tl-duration">16:30</div>
+                        </div>
+                    </li>
+                </ol>
+            </div>
+        </section>
 
-<!-- CONTACT -->
-<section class="card">
-    <h2>Contact</h2>
-    <p><strong>Email :</strong> <a href="mailto:osiris@fst.utm.tn">osiris@fst.utm.tn</a></p>
-    <p><strong>Tél :</strong> <a href="tel:+21622943713">+216 22 943 713</a></p>
-</section>
+        <!-- DEADLINES ─────────────────────────────────────── -->
+        <section class="deadlines-section" aria-label="Dates limites">
+            <div class="container">
+                <div class="deadlines-grid">
+                    <article class="deadline-card">
+                        <div class="dl-icon">
+                            <i class="far fa-file-lines" aria-hidden="true"></i>
+                        </div>
+                        <div class="dl-content">
+                            <span class="dl-label">Soumission des résumés — Posters</span>
+                            <p class="dl-date">10 Avril 2026</p>
+                        </div>
+                    </article>
+                    <article class="deadline-card">
+                        <div class="dl-icon">
+                            <i class="fas fa-user-plus" aria-hidden="true"></i>
+                        </div>
+                        <div class="dl-content">
+                            <span class="dl-label">Date limite d'inscription</span>
+                            <p class="dl-date">15 Avril 2026</p>
+                        </div>
+                    </article>
+                </div>
+            </div>
+        </section>
 
-<!-- FOOTER -->
-<footer>
-    <p>Participation gratuite</p>
-</footer>
+ <!-- WAVE DIVIDER: green rises up into benefits -->
+        <div class="wave-divider wave-green-up-entry" aria-hidden="true">
+            <svg viewBox="0 0 1440 80" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M0,80 C360,20 1080,70 1440,30 L1440,80 L0,80 Z"/>
+            </svg>
+        </div>
+ 
+        <!-- BENEFITS ──────────────────────────────────────── -->
+        <section class="benefits-section" aria-label="Avantages">
+            <div class="container">
+                <div class="benefits-grid">
+                    <article class="benefit-card">
+                        <i class="fas fa-certificate" aria-hidden="true"></i>
+                        <h3>Attestations de présence</h3>
+                        <p>Délivrées à l'ensemble des participants à l'issue de la journée</p>
+                    </article>
+                    <article class="benefit-card">
+                        <i class="fas fa-star-of-life" aria-hidden="true"></i>
+                        <h3>Points de crédit</h3>
+                        <p>Crédits académiques pour doctorants et chercheurs inscrits</p>
+                    </article>
+                    <article class="benefit-card">
+                        <i class="fas fa-seedling" aria-hidden="true"></i>
+                        <h3>Adhésion Osiris</h3>
+                        <p>Opportunité de rejoindre le réseau de l'association scientifique</p>
+                    </article>
+                </div>
+            </div>
+        </section>
 
+        <!-- COMITÉS ───────────────────────────────────────── -->
+        <section id="comites" class="comites-section" aria-label="Comités">
+            <div class="container">
+
+                <header class="section-header section-header-light">
+                    <span class="section-eyebrow section-eyebrow-light">Équipes</span>
+                    <h2><span style="color: var(--cream);">Comité </span><em>d'organisation</em></h2>
+                    <div class="header-rule header-rule-light"></div>
+                    <p class="section-desc section-desc-light">L'équipe qui donne vie à cette journée d'exception</p>
+                </header>
+
+                <ul class="comite-grid" role="list">
+                    <li class="member">Beya Haouas <span>INSAT</span></li>
+                    <li class="member">Naries Ben Brahim Aouani <span>FST</span></li>
+                    <li class="member">Rachida Bedira <span>FST</span></li>
+                    <li class="member">Regava Ksiksi <span>ISEPBG Soukra</span></li>
+                    <li class="member">Sahar Raissi <span>FST</span></li>
+                    <li class="member">Hager Maghraoui <span>FST</span></li>
+                    <li class="member">Faten Boujelbane <span>CNSTN</span></li>
+                    <li class="member">Ibtissem Ben Assaker <span>CRTEN</span></li>
+                    <li class="member">Mehdi Souli <span>FST</span></li>
+                    <li class="member">Meriem Sabbagh <span>TBS</span></li>
+                    <li class="member">Sadia Fatma Chérif <span>IPEIEIM</span></li>
+                    <li class="member">Neila Jebbari <span>IPEIEIM</span></li>
+                    <li class="member">Afrah Bardaoui <span>CRTEN</span></li>
+                    <li class="member">Soumaya Bezzaouia <span>FST</span></li>
+                    <li class="member">Imen Sfar <span>FST</span></li>
+                    <li class="member">Saida Fatma Chérif <span>IPEIEIM</span></li>
+                    <li class="member">Ranim Slaimi <span>FST</span></li>
+                    <li class="member">Med Amine Berbechi <span>FST</span></li>
+                    <li class="member">Mortadha Zayani <span>FST</span></li>
+                </ul>
+
+                <div class="comite-sep" aria-hidden="true"></div>
+
+                <header class="section-header section-header-light" style="margin-top:0">
+                    <span class="section-eyebrow section-eyebrow-light">Expertise</span>
+                    <h2><span style="color: var(--cream);">Comité <em>scientifique</em></h2>
+                    <div class="header-rule header-rule-light"></div>
+                    <p class="section-desc section-desc-light">Experts chargés de l'évaluation des travaux soumis</p>
+                </header>
+
+                <ul class="comite-grid" role="list">
+                    <li class="member">Beya Haouas <span>INSAT</span></li>
+                    <li class="member">Naries Ben Brahim Aouani <span>FST</span></li>
+                    <li class="member">Regava Ksiksi <span>ISEPBG Soukra</span></li>
+                    <li class="member">Sahar Raissi <span>FST</span></li>
+                    <li class="member">Hager Maghraoui <span>FST</span></li>
+                    <li class="member">Faten Boujelbane <span>CNSTN</span></li>
+                    <li class="member">Sadia Fatma Chérif <span>IPEIEIM</span></li>
+                    <li class="member">Neila Jebbari <span>IPEIEIM</span></li>
+                    <li class="member">Afrah Bardaoui <span>CRTEN</span></li>
+                    <li class="member">Soumaya Bezzaouia <span>FST</span></li>
+                    <li class="member">Imen Sfar <span>FST</span></li>
+                    <li class="member">Saida Fatma Chérif <span>IPEIEIM</span></li>
+                    <li class="member">Ranim Slaimi <span>FST</span></li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- WAVE DIVIDER -->
+        <div class="wave-divider wave-green-up" aria-hidden="true">
+            <svg viewBox="0 0 1440 60" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M0,30 C360,0 1080,60 1440,30 L1440,0 L0,0 Z"/>
+            </svg>
+        </div>
+
+        <!-- CTA ───────────────────────────────────────────── -->
+        <section id="inscription" class="cta-section" aria-label="Inscription">
+            <div class="container cta-inner">
+                <div class="cta-leaf-deco" aria-hidden="true"></div>
+                <div class="cta-text">
+                    <span class="section-eyebrow">Rejoignez-nous</span>
+                    <h2>Inscription <em>gratuite</em></h2>
+                    <p>
+                        Ne manquez pas cette journée unique dédiée à la science au service
+                        de la planète. Places limitées — inscrivez-vous avant le 15 avril.
+                    </p>
+                </div>
+                <div class="cta-actions">
+                    <a href="#contact" class="btn-cta-primary">
+                        <i class="fas fa-pencil" aria-hidden="true"></i> S'inscrire maintenant
+                    </a>
+                    <a href="#programme" class="btn-cta-secondary">
+                        Voir le programme
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- CONTACT ───────────────────────────────────────── -->
+        <section id="contact" class="contact-section" aria-label="Contact">
+            <div class="container">
+                <header class="section-header">
+                    <span class="section-eyebrow">Nous rejoindre</span>
+                    <h2>Prendre <em>contact</em></h2>
+                    <div class="header-rule"></div>
+                </header>
+                <div class="contact-grid">
+                    <article class="contact-card">
+                        <div class="contact-icon-wrap">
+                            <i class="fas fa-envelope-open-text" aria-hidden="true"></i>
+                        </div>
+                        <h3>Courriel</h3>
+                        <a href="mailto:osiris.fst@gmail.com">osiris.fst@gmail.com</a>
+                    </article>
+                    <article class="contact-card">
+                        <div class="contact-icon-wrap">
+                            <i class="fas fa-phone-volume" aria-hidden="true"></i>
+                        </div>
+                        <h3>Téléphone</h3>
+                        <a href="tel:+21622943713">(+216) 22 943 713</a>
+                        <a href="tel:+21693099390">(+216) 93 099 390</a>
+                    </article>
+                    <article class="contact-card">
+                        <div class="contact-icon-wrap">
+                            <i class="fas fa-map-location-dot" aria-hidden="true"></i>
+                        </div>
+                        <h3>Adresse</h3>
+                        <p>Faculté des Sciences de Tunis<br>Université de Tunis El Manar</p>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- ══ FOOTER ══════════════════════════════════════════ -->
+    <footer class="site-footer">
+        <div class="footer-inner container">
+            <div class="footer-brand">
+                <div class="footer-logo-molecule" aria-hidden="true">
+                    <span class="atom atom-center"></span>
+                    <span class="atom atom-left"></span>
+                    <span class="atom atom-right"></span>
+                    <span class="bond bond-left"></span>
+                    <span class="bond bond-right"></span>
+                </div>
+                <p class="footer-name">Hydrogène<strong>Vert</strong></p>
+                <p class="footer-tagline">Pilier de la transition énergétique</p>
+                <p class="footer-org">Association Osiris × FST · 2026</p>
+            </div>
+
+            <nav class="footer-nav" aria-label="Navigation pied de page">
+                <h4>Navigation</h4>
+                <ul role="list">
+                    <li><a href="#accueil">Accueil</a></li>
+                    <li><a href="#programme">Programme</a></li>
+                    <li><a href="#comites">Comités</a></li>
+                    <li><a href="#informations">Informations</a></li>
+                    <li><a href="#contact">Contact</a></li>
+                </ul>
+            </nav>
+
+            <div class="footer-info">
+                <h4>Dates à retenir</h4>
+                <ul role="list">
+                    <li><span class="footer-date-accent">10 Avr.</span> Soumission des résumés</li>
+                    <li><span class="footer-date-accent">15 Avr.</span> Date limite d'inscription</li>
+                    <li><span class="footer-date-accent">7 Mai</span> Journée scientifique</li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <div class="container">
+                <p>© 2026 Association Osiris · Faculté des Sciences de Tunis · Université de Tunis El Manar</p>
+                <a href="#top" class="back-to-top" aria-label="Retour en haut">
+                    <i class="fas fa-chevron-up" aria-hidden="true"></i>
+                </a>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        /* ── Mobile nav toggle ───────────────────── */
+        const toggle = document.getElementById('navToggle');
+        const menu   = document.getElementById('navMenu');
+        toggle.addEventListener('click', () => {
+            const open = toggle.getAttribute('aria-expanded') === 'true';
+            toggle.setAttribute('aria-expanded', String(!open));
+            menu.classList.toggle('is-open');
+        });
+        menu.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
+            toggle.setAttribute('aria-expanded', 'false');
+            menu.classList.remove('is-open');
+        }));
+
+        /* ── Navbar scroll shrink ────────────────── */
+        const navbar = document.querySelector('.navbar');
+        window.addEventListener('scroll', () => {
+            navbar.classList.toggle('scrolled', window.scrollY > 60);
+        }, { passive: true });
+
+        /* ── Intersection Observer: fade-in ─────── */
+        const observer = new IntersectionObserver(entries => {
+            entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); observer.unobserve(e.target); } });
+        }, { threshold: 0.1 });
+        document.querySelectorAll('.info-card, .timeline-item, .benefit-card, .member, .contact-card, .deadline-card, .stat-item')
+            .forEach(el => observer.observe(el));
+    </script>
 </body>
 </html>
