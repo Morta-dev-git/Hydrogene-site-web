@@ -17,8 +17,8 @@ scene.background = null;
 scene.fog = new THREE.FogExp2(0x9ec8db, 0.042);
 
 /* ── Camera ─────────────────────────────────────────────── */
-const camera = new THREE.PerspectiveCamera(38, 1, 0.01, 200);
-camera.position.set(0, 0.3, 11);
+const camera = new THREE.PerspectiveCamera(45, 1, 0.01, 200); // Tighter FOV
+camera.position.set(8, 4, 12);   // Moved much closer and lower
 
 /* ── Renderer ───────────────────────────────────────────── */
 const renderer = new THREE.WebGLRenderer({
@@ -38,6 +38,7 @@ renderer.shadowMap.type      = THREE.PCFSoftShadowMap;
 
 /* ── Controls ───────────────────────────────────────────── */
 const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(0, 2.85, 0);   // Lowered to look at the scaled-down nacelle
 controls.enableDamping    = true;
 controls.dampingFactor    = 0.05;
 controls.enableZoom       = false;
@@ -45,7 +46,7 @@ controls.enablePan        = false;
 controls.autoRotate       = true;
 controls.autoRotateSpeed  = 0.5;
 controls.minPolarAngle    = DEG(15);
-controls.maxPolarAngle    = DEG(100); // stop just past horizontal — no looking from underground
+controls.maxPolarAngle    = DEG(100);
 
 let idleTimer;
 const resetIdle = () => {
@@ -114,9 +115,6 @@ const skyMat = new THREE.ShaderMaterial({
 envGroup.add(new THREE.Mesh(skyGeo, skyMat));
 
 /* ── 3-D volumetric clouds ───────────────────────────────── */
-// Each cloud is a cluster of overlapping soft spheres.
-// They drift slowly on the X axis via the animation loop.
-
 const cloudMat = new THREE.MeshLambertMaterial({
     color: 0xffffff,
     transparent: true,
@@ -130,7 +128,6 @@ const cloudShadowMat = new THREE.MeshLambertMaterial({
     depthWrite: false,
 });
 
-// Puff blueprint: [dx, dy, dz, radius]  — offsets relative to cloud centre
 const puffLayouts = [
     // large fluffy cumulus
     [
@@ -162,8 +159,6 @@ const puffLayouts = [
     ],
 ];
 
-// Cloud definitions: [cx, cy, cz, layoutIndex, driftSpeed, originAngle]
-// Two concentric rings (inner r~48, outer r~72) guarantee full 360 sky coverage.
 const cloudDefs = (() => {
     const inner = (() => {
         const count   = 10, r = 48;
@@ -190,33 +185,30 @@ const cloudDefs = (() => {
 })();
 
 const cloudGroups = [];
-const puffGeo = new THREE.SphereGeometry(1, 9, 7); // unit sphere, scaled per puff
+const puffGeo = new THREE.SphereGeometry(1, 9, 7);
 
 for (const [cx, cy, cz, layout, speed, angle] of cloudDefs) {
     const grp = new THREE.Group();
     grp.position.set(cx, cy, cz);
     grp.userData.driftSpeed  = speed;
-    grp.userData.originAngle = angle;   // angle around Y axis
+    grp.userData.originAngle = angle; 
     grp.userData.radius      = Math.sqrt(cx * cx + cz * cz);
     grp.userData.originY     = cy;
 
     const puffs = puffLayouts[layout];
     for (let p = 0; p < puffs.length; p++) {
         const [dx, dy, dz, r] = puffs[p];
-        // Bottom puffs get the slightly grey shadow colour for depth
         const mat = dy < -0.2 ? cloudShadowMat : cloudMat;
         const mesh = new THREE.Mesh(puffGeo, mat);
         mesh.position.set(dx, dy, dz);
         mesh.scale.setScalar(r);
         grp.add(mesh);
     }
-
     envGroup.add(grp);
     cloudGroups.push(grp);
 }
 
 /* ── Ground ─────────────────────────────────────────────── */
-// Ground plane — single sided, sits on top of the soil block
 const groundMat = new THREE.MeshLambertMaterial({ color: 0x3b6830 });
 const ground = new THREE.Mesh(new THREE.PlaneGeometry(140, 140), groundMat);
 ground.rotation.x = -Math.PI / 2;
@@ -224,16 +216,12 @@ ground.position.y = -3.15;
 ground.receiveShadow = true;
 envGroup.add(ground);
 
-// Thick soil block — top face starts 0.05 below the ground plane so there is
-// no co-planar overlap and no Z-fighting
 const soilMat = new THREE.MeshLambertMaterial({ color: 0x2a1f0e });
 const soil = new THREE.Mesh(new THREE.BoxGeometry(140, 12, 140), soilMat);
-soil.position.y = -3.15 - 0.05 - 6;  // 0.05 gap clears Z-fighting completely
+soil.position.y = -3.15 - 0.05 - 6;
 envGroup.add(soil);
 
 /* ── Vegetation builders ─────────────────────────────────── */
-
-// TYPE A: Classic pine (existing, 3 layered cones)
 function makePine(x, z, scale) {
     const g = new THREE.Group();
     g.position.set(x, -3.15, z);
@@ -261,11 +249,9 @@ function makePine(x, z, scale) {
     return g;
 }
 
-// TYPE B: Broadleaf / deciduous — rounded canopy made of overlapping spheres
 function makeBroadleaf(x, z, scale) {
     const g = new THREE.Group();
     g.position.set(x, -3.15, z);
-    // Trunk — thicker, shorter
     const trunk = new THREE.Mesh(
         new THREE.CylinderGeometry(0.10*scale, 0.16*scale, 1.4*scale, 8),
         new THREE.MeshLambertMaterial({ color: 0x4a2e12 })
@@ -273,7 +259,6 @@ function makeBroadleaf(x, z, scale) {
     trunk.position.y = 0.7 * scale;
     trunk.castShadow = true;
     g.add(trunk);
-    // Canopy — 5 overlapping spheres of varying green
     const canopyPuffs = [
         { dx:0,    dy:2.0, dz:0,    r:0.80, color:0x2d7a25 },
         { dx:-0.5, dy:1.6, dz:0.3,  r:0.65, color:0x246b1e },
@@ -293,7 +278,6 @@ function makeBroadleaf(x, z, scale) {
     return g;
 }
 
-// TYPE C: Tall poplar / cypress — slim single cone, very tall
 function makePoplar(x, z, scale) {
     const g = new THREE.Group();
     g.position.set(x, -3.15, z);
@@ -303,7 +287,6 @@ function makePoplar(x, z, scale) {
     );
     trunk.position.y = 0.6 * scale;
     g.add(trunk);
-    // Single tall narrow cone
     const foliage = new THREE.Mesh(
         new THREE.ConeGeometry(0.28*scale, 2.6*scale, 7),
         new THREE.MeshLambertMaterial({ color: 0x1a5c1a })
@@ -314,7 +297,6 @@ function makePoplar(x, z, scale) {
     return g;
 }
 
-// TYPE D: Low spreading shrub — wide flat cluster of spheres
 function makeShrub(x, z, scale) {
     const g = new THREE.Group();
     g.position.set(x, -3.15, z);
@@ -337,7 +319,6 @@ function makeShrub(x, z, scale) {
     return g;
 }
 
-// TYPE E: Dead / autumn tree — bare branching silhouette
 function makeDeadTree(x, z, scale) {
     const g = new THREE.Group();
     g.position.set(x, -3.15, z);
@@ -349,7 +330,6 @@ function makeDeadTree(x, z, scale) {
     trunk.position.y = 0.9 * scale;
     trunk.castShadow = true;
     g.add(trunk);
-    // A few angled branch stubs
     const branches = [
         { ry:0.6,  rz:0.5,  len:0.7, y:1.4 },
         { ry:2.2,  rz:-0.4, len:0.6, y:1.6 },
@@ -371,7 +351,6 @@ function makeDeadTree(x, z, scale) {
     return g;
 }
 
-// Convenience: pick plant type by index
 function makePlant(type, x, z, scale) {
     switch (type % 5) {
         case 0: return makePine(x, z, scale);
@@ -384,30 +363,24 @@ function makePlant(type, x, z, scale) {
 
 /* ── Forest ring — much denser, mixed types ─────────────── */
 const treeData = [
-    // Back arc (behind turbine, dense)
     [-6.5,-7.2,1.15,0], [-4.0,-8.8,0.95,1], [-1.2,-9.5,1.10,2],
     [ 2.0,-9.0,1.05,0], [ 4.8,-8.2,0.90,3], [ 7.0,-6.8,1.20,1],
     [-8.5,-5.5,0.85,2], [ 9.2,-5.0,0.92,0], [-10.5,-3.0,1.05,4],
     [ 10.8,-2.5,0.88,1],[-11.0,-0.5,1.00,3],[ 11.2, 0.8,0.95,2],
     [-3.5,-11.0,0.80,1],[ 0.5,-12.0,1.00,0],[ 3.5,-11.5,0.85,2],
-    // Extra back fill
     [-5.5,-9.8,0.88,2], [ 1.2,-10.8,0.92,3], [-9.0,-6.5,0.95,1],
     [ 9.8,-4.0,0.82,4], [-2.0,-10.0,1.02,0], [ 6.5,-8.0,0.90,1],
-    // Left arc
     [-9.0, 1.5,1.10,1], [-9.8, 4.0,0.90,2], [-8.5, 6.5,1.05,0],
     [-7.0, 8.5,0.85,3], [-5.0,10.0,0.95,1], [-11.5, 6.0,0.80,4],
     [-10.5, 2.8,0.92,2],[-8.0, 9.5,0.88,1], [-12.5, 4.5,0.78,0],
     [-6.5, 11.5,0.82,3],[-4.0,12.5,0.85,2],
-    // Right arc
     [ 9.2, 1.8,1.00,3], [ 10.0, 4.5,0.88,0], [ 8.8, 7.0,1.12,1],
     [ 6.5, 9.0,0.92,2], [ 4.0,10.5,0.85,4], [ 11.5, 6.5,0.80,1],
     [ 10.8, 3.2,0.90,2],[ 8.0, 9.8,0.86,0], [ 12.5, 5.0,0.76,3],
     [ 5.5,12.0,0.80,1], [ 3.0,13.0,0.84,2],
-    // Front sides
     [-5.5, 3.5,0.70,3], [ 5.8, 3.2,0.72,1], [-4.5, 5.5,0.68,2],
     [ 4.2, 5.8,0.65,3], [-7.0, 2.0,0.75,0], [ 7.2, 2.2,0.73,4],
     [-6.2, 4.8,0.66,1], [ 6.0, 5.0,0.68,2],
-    // Deep background fill — second ring, far out
     [-3.0,-13.5,0.78,1], [ 5.5,-13.0,0.82,0], [-8.0,-10.0,0.90,2],
     [ 8.5,-10.5,0.88,3], [ 0.0,-14.0,0.75,1], [-13.0,-1.0,0.85,4],
     [ 13.0, 1.0,0.82,2], [-15.0, 3.5,0.72,0], [ 14.5, 5.0,0.74,1],
@@ -429,7 +402,6 @@ const bushPositions = [
     [-3.5, 1.8], [3.2, 2.0], [-2.0, 3.5], [1.8, 3.8],
     [-6.0, 0.5], [6.2, 0.8], [-4.8, 4.5], [4.5, 4.2],
     [ 0.5,-7.0], [-6.5,-4.5],[6.8,-4.0], [-0.8, 5.2],
-    // Extra fill
     [-3.2,-2.5], [3.0,-2.8], [-1.0,-3.8], [1.5,-4.0],
     [-5.8, 2.5], [5.5, 2.8], [-2.8, 5.0], [2.5, 5.5],
     [ 0.0,-8.0], [-7.5,-2.0],[7.0,-3.5], [-4.0, 6.5],
@@ -471,13 +443,11 @@ for (let fi = 0; fi < flowerSpots.length; fi++) {
 }
 
 /* ── Horizon relief — continuous terrain ring ───────────── */
-
 function makeHorizonRing(innerR, outerR, yBase, peaks, colorOuter, colorInner) {
     const segments = peaks.length;
     const positions = [];
     const colors    = [];
     const indices   = [];
-
     const cOut = new THREE.Color(colorOuter);
     const cIn  = new THREE.Color(colorInner);
 
@@ -487,25 +457,21 @@ function makeHorizonRing(innerR, outerR, yBase, peaks, colorOuter, colorInner) {
         const h   = peaks[idx];
         const cos = Math.cos(a), sin = Math.sin(a);
 
-        // outer-bottom
         positions.push(cos * outerR, yBase,     sin * outerR);
         colors.push(cOut.r, cOut.g, cOut.b);
-        // outer-top (peak color)
         positions.push(cos * outerR, yBase + h, sin * outerR);
         colors.push(cOut.r, cOut.g, cOut.b);
-        // inner-top (darker — shadow side)
         positions.push(cos * innerR, yBase + h * 0.2, sin * innerR);
         colors.push(cIn.r, cIn.g, cIn.b);
-        // inner-bottom
         positions.push(cos * innerR, yBase,     sin * innerR);
         colors.push(cIn.r, cIn.g, cIn.b);
     }
 
     for (let i = 0; i < segments; i++) {
         const a = i * 4, b = (i + 1) * 4;
-        indices.push(a, b, a+1,  b, b+1, a+1);   // outer face
-        indices.push(a+1, b+1, a+2,  b+1, b+2, a+2); // top cap
-        indices.push(a+2, b+2, a+3,  b+2, b+3, a+3); // inner face
+        indices.push(a, b, a+1,  b, b+1, a+1);   
+        indices.push(a+1, b+1, a+2,  b+1, b+2, a+2); 
+        indices.push(a+2, b+2, a+3,  b+2, b+3, a+3); 
     }
 
     const geo = new THREE.BufferGeometry();
@@ -514,7 +480,6 @@ function makeHorizonRing(innerR, outerR, yBase, peaks, colorOuter, colorInner) {
     geo.setIndex(indices);
     geo.computeVertexNormals();
 
-    // BasicMaterial so scene fog never bleaches the color (we bake haze manually)
     return new THREE.Mesh(geo, new THREE.MeshBasicMaterial({
         vertexColors: true,
         side: THREE.DoubleSide,
@@ -522,8 +487,7 @@ function makeHorizonRing(innerR, outerR, yBase, peaks, colorOuter, colorInner) {
     }));
 }
 
-// Atmospheric haze helper — blends a base color toward the sky-fog color by t ∈ [0,1]
-const hazeCol = new THREE.Color(0x9ec8db); // matches scene FogExp2 color
+const hazeCol = new THREE.Color(0x9ec8db); 
 function hazeBlend(baseHex, t) {
     return new THREE.Color().lerpColors(new THREE.Color(baseHex), hazeCol, t);
 }
@@ -532,7 +496,6 @@ function makeHorizonRingHazed(innerR, outerR, yBase, peaks, colorOuter, colorInn
     const segments = peaks.length;
     const positions = [], colors = [], indices = [];
 
-    // peaks get more haze (higher altitude = more atmosphere between viewer and surface)
     const cOutTop  = hazeBlend(colorOuter, hazeAmt);
     const cOutBase = hazeBlend(colorOuter, hazeAmt * 0.35);
     const cInTop   = hazeBlend(colorInner, hazeAmt * 0.80);
@@ -574,7 +537,6 @@ function makeHorizonRingHazed(innerR, outerR, yBase, peaks, colorOuter, colorInn
     }));
 }
 
-// Near ridge — subtle haze (closer, less atmospheric perspective)
 const nearCount = 90;
 const nearPeaks = Array.from({ length: nearCount }, (_, i) => {
     const a = (i / nearCount) * TAU;
@@ -583,10 +545,9 @@ const nearPeaks = Array.from({ length: nearCount }, (_, i) => {
         + Math.sin(a * 7 + 1.2) * 1.2
         + Math.sin(a * 15 + 2.1) * 0.5;
 });
-const nearRing = makeHorizonRingHazed(62, 78, -3.15, nearPeaks, 0x3a6b2a, 0x2a4e1e, 0.18);
+const nearRing = makeHorizonRingHazed(62, 78, -3.15, nearPeaks, 0x3a6b2a, 0x2a4e1e, 0.06);
 envGroup.add(nearRing);
 
-// Far mountain ridge — stronger haze (distance = more atmospheric depth)
 const farCount = 120;
 const farPeaks = Array.from({ length: farCount }, (_, i) => {
     const a = (i / farCount) * TAU;
@@ -597,6 +558,46 @@ const farPeaks = Array.from({ length: farCount }, (_, i) => {
 });
 const farRing = makeHorizonRingHazed(105, 130, -3.15, farPeaks, 0x3a5c28, 0x2a4018, 0.18);
 envGroup.add(farRing);
+
+/* ── Mountain-base vegetation ring (r=18–30, scale < 1) ──── */
+{
+    const mbPlants = [];
+    const mbCount = 48;
+    const jitterSeq = [0.06,-0.09,0.13,-0.05,0.18,-0.11,0.04,-0.15,0.09,-0.07,
+                       0.14,-0.03,0.11,-0.13,0.07,-0.08,0.16,-0.06,0.03,-0.12,
+                       0.10,-0.04,0.17,-0.10,0.05,-0.14,0.08,-0.02,0.15,-0.09,
+                       0.12,-0.06,0.19,-0.11,0.04,-0.16,0.07,-0.03,0.13,-0.08,
+                       0.18,-0.05,0.09,-0.13,0.06,-0.10,0.14,-0.07];
+    const rSeq = [20,22,19,24,21,26,18,23,25,20,22,27,19,21,24,28,
+                  20,23,18,26,21,25,22,19,27,20,24,18,22,26,21,23,
+                  25,19,20,28,22,24,18,21,26,23,20,25,19,22,27,21];
+    const typeSeq = [3,0,1,3,2,4,3,1,0,3,2,3,1,4,3,0,
+                     3,2,1,3,0,4,3,2,1,3,0,3,2,4,1,3,
+                     0,3,2,1,3,4,0,3,2,3,1,0,3,2,4,3];
+    const scaleSeq = [0.48,0.62,0.55,0.40,0.70,0.52,0.45,0.65,0.58,0.42,
+                      0.68,0.50,0.44,0.72,0.56,0.38,0.60,0.46,0.74,0.53,
+                      0.41,0.66,0.49,0.57,0.43,0.71,0.47,0.63,0.39,0.69,
+                      0.54,0.45,0.64,0.50,0.42,0.73,0.48,0.61,0.37,0.67,
+                      0.52,0.44,0.70,0.55,0.40,0.65,0.50,0.58];
+
+    for (let i = 0; i < mbCount; i++) {
+        const angle = (i / mbCount) * TAU + jitterSeq[i];
+        const r = rSeq[i];
+        const x = Math.cos(angle) * r;
+        const z = Math.sin(angle) * r;
+        envGroup.add(makePlant(typeSeq[i], x, z, scaleSeq[i]));
+    }
+
+    const mb2Count = 32;
+    for (let i = 0; i < mb2Count; i++) {
+        const angle = ((i + 0.5) / mb2Count) * TAU + jitterSeq[i % jitterSeq.length] * 0.7;
+        const r = 29 + (rSeq[i % rSeq.length] % 9);
+        const x = Math.cos(angle) * r;
+        const z = Math.sin(angle) * r;
+        const s = 0.30 + (scaleSeq[i % scaleSeq.length] * 0.55); 
+        envGroup.add(makePlant(typeSeq[(i + 3) % typeSeq.length], x, z, s));
+    }
+}
 
 /* ── Grass tufts ────────────────────────────────────────── */
 const grassMat = new THREE.MeshLambertMaterial({ color: 0x4d8c3a, side: THREE.DoubleSide });
@@ -618,540 +619,180 @@ const PLASTIC_VERT = `
     varying vec3 vNormal;
     varying vec3 vViewDir;
     varying vec3 vWorldNormal;
-
     void main() {
         vNormal = normalize(normalMatrix * normal);
         vec4 mvPos = modelViewMatrix * vec4(position * uScale, 1.0);
-        vViewDir   = normalize(-mvPos.xyz);
+        vViewDir = normalize(-mvPos.xyz);
         vWorldNormal = normalize((modelMatrix * vec4(normal, 0.0)).xyz);
         gl_Position = projectionMatrix * mvPos;
     }
 `;
 
 const PLASTIC_FRAG = `
-    uniform vec3  uAlbedo;
-    uniform vec3  uSpecColor;
+    uniform vec3 uAlbedo;
+    uniform vec3 uSpecColor;
     uniform float uGloss;
     uniform float uFresnelStr;
     uniform float uHover;
     uniform float uTime;
-
+    
     varying vec3 vNormal;
     varying vec3 vViewDir;
     varying vec3 vWorldNormal;
-
-    const vec3 L_KEY  = normalize(vec3(4.0, 7.0, 5.0));
+    
+    const vec3 L_KEY = normalize(vec3(4.0, 7.0, 5.0));
     const vec3 L_FILL = normalize(vec3(-5.0, 2.0, 3.0));
-    const vec3 L_RIM  = normalize(vec3(-3.0, -4.0, -6.0));
-
-    const vec3 C_KEY  = vec3(1.00, 0.98, 0.95) * 2.4;
-    const vec3 C_FILL = vec3(0.85, 0.92, 1.00) * 0.6;
-    const vec3 C_RIM  = vec3(0.69, 0.85, 0.94) * 0.9;
-    const vec3 C_AMB  = vec3(1.0) * 0.30;
-    const vec3 C_HEMI_SKY = vec3(0.96, 0.94, 0.88) * 0.45;
-    const vec3 C_HEMI_GND = vec3(0.78, 0.87, 0.78) * 0.45;
-
+    const vec3 L_RIM = normalize(vec3(-3.0, -4.0, -6.0));
+    
     void main() {
-        vec3  N   = normalize(vNormal);
-        vec3  V   = normalize(vViewDir);
-        float NdV = max(dot(N, V), 0.0);
-
-        float dKey  = max(dot(N, L_KEY),  0.0);
-        float dFill = max(dot(N, L_FILL), 0.0);
-        float dRim  = max(dot(N, L_RIM),  0.0);
-
-        float hemi = vWorldNormal.y * 0.5 + 0.5;
-        vec3  hemiColor = mix(C_HEMI_GND, C_HEMI_SKY, hemi);
-
-        vec3 diffuse = uAlbedo * (
-            C_AMB + hemiColor +
-            C_KEY  * dKey  +
-            C_FILL * dFill +
-            C_RIM  * dRim
-        );
-
-        vec3  H_key  = normalize(L_KEY + V);
-        float spec   = pow(max(dot(N, H_key), 0.0), uGloss);
-        vec3  H_fill = normalize(L_FILL + V);
-        float spec2  = pow(max(dot(N, H_fill), 0.0), uGloss * 0.4) * 0.15;
-        vec3 specular = uSpecColor * (spec + spec2);
-
-        float fresnel = pow(1.0 - NdV, 4.5) * uFresnelStr;
-        vec3  rimCol  = vec3(0.72, 0.88, 1.0) * fresnel;
-
-        vec3 hoverLift = uAlbedo * uHover * 0.12;
-
-        vec3 col = diffuse + specular + rimCol + hoverLift;
+        vec3 n = normalize(vNormal);
+        vec3 v = normalize(vViewDir);
+        
+        float ndotl_key = max(dot(n, L_KEY), 0.0);
+        float ndotl_fill = max(dot(n, L_FILL), 0.0);
+        float ndotl_rim = max(dot(n, L_RIM), 0.0);
+        
+        vec3 diff = uAlbedo * (ndotl_key * 1.2 + ndotl_fill * 0.6 + ndotl_rim * 0.3 + 0.2); 
+        
+        vec3 h_key = normalize(L_KEY + v);
+        float spec_key = pow(max(dot(n, h_key), 0.0), uGloss);
+        vec3 spec = uSpecColor * spec_key * 0.5;
+        
+        float fresnel = pow(1.0 - max(dot(n, v), 0.0), 4.0) * uFresnelStr;
+        vec3 col = diff + spec + (fresnel * uSpecColor);
+        
+        col += uHover * vec3(0.2, 0.2, 0.2); // Hover glow effect
+        
         gl_FragColor = vec4(col, 1.0);
+        
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
     }
 `;
 
-/* ── Beacon / emissive material for aviation light ──────── */
-const BEACON_FRAG = `
-    uniform vec3  uAlbedo;
-    uniform float uTime;
-    varying vec3 vNormal;
-    varying vec3 vViewDir;
-    varying vec3 vWorldNormal;
-
-    void main() {
-        float cycle  = mod(uTime, 2.0);
-        float blink  = step(cycle, 0.25);
-
-        vec3 N   = normalize(vNormal);
-        vec3 V   = normalize(vViewDir);
-        float rim = pow(1.0 - max(dot(N, V), 0.0), 2.5);
-
-        vec3 emissive = uAlbedo * (blink * (1.5 + rim * 2.0));
-        gl_FragColor = vec4(emissive, 1.0);
-    }
-`;
-
-/* ═══════════════════════════════════════════════════════════
-   MATERIAL FACTORY
-════════════════════════════════════════════════════════════ */
-function makePlasticMat({ albedo, specColor, gloss, fresnelStr }) {
-    return new THREE.ShaderMaterial({
-        uniforms: {
-            uAlbedo:     { value: new THREE.Color(albedo) },
-            uSpecColor:  { value: new THREE.Color(specColor) },
-            uGloss:      { value: gloss },
-            uFresnelStr: { value: fresnelStr },
-            uHover:      { value: 0 },
-            uTime:       { value: 0 },
-            uScale:      { value: 1 },
-        },
-        vertexShader:   PLASTIC_VERT,
-        fragmentShader: PLASTIC_FRAG,
-    });
-}
-
-function makeBeaconMat(color) {
-    return new THREE.ShaderMaterial({
-        uniforms: {
-            uAlbedo: { value: new THREE.Color(color) },
-            uTime:   { value: 0 },
-        },
-        vertexShader:   PLASTIC_VERT.replace('uniform float uScale;', 'uniform float uScale;').replace('* uScale', ''),
-        fragmentShader: BEACON_FRAG,
-    });
-}
-
-/* ═══════════════════════════════════════════════════════════
-   WIND TURBINE CONSTRUCTION
-   Tower  → Nacelle → RotorGroup (Hub + 3 Blades)
-════════════════════════════════════════════════════════════ */
-const turbine = new THREE.Group();
-
-/* ── Foundation / Base ──────────────────────────────────── */
-const baseMat = makePlasticMat({
-    albedo:     0x9aa4ae,
-    specColor:  0xd0dce8,
-    gloss:      55,
-    fresnelStr: 0.15,
-});
-const baseMesh = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.52, 0.62, 0.22, 20),
-    baseMat
-);
-baseMesh.position.set(0, -2.90, 0);
-baseMesh.castShadow = true;
-baseMesh.receiveShadow = true;
-turbine.add(baseMesh);
-
-/* ── Foundation anchor bolt ring ────────────────────────── */
-const boltMat = makePlasticMat({ albedo: 0x555e66, specColor: 0x99aabb, gloss: 140, fresnelStr: 0.10 });
-for (let i = 0; i < 12; i++) {
-    const angle = (i / 12) * TAU;
-    const boltMesh = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.018, 0.018, 0.10, 8),
-        boltMat
-    );
-    boltMesh.position.set(
-        Math.cos(angle) * 0.49,
-        -2.84,
-        Math.sin(angle) * 0.49
-    );
-    turbine.add(boltMesh);
-    const nutMesh = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.026, 0.026, 0.022, 6),
-        boltMat
-    );
-    nutMesh.position.set(
-        Math.cos(angle) * 0.49,
-        -2.78,
-        Math.sin(angle) * 0.49
-    );
-    turbine.add(nutMesh);
-}
-
-/* ── Tower — tapered cylinder, off-white industrial paint ─ */
-const towerMat = makePlasticMat({
-    albedo:     0xdde3ea,
-    specColor:  0xffffff,
-    gloss:      95,
-    fresnelStr: 0.20,
-});
-const towerMesh = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.13, 0.27, 4.5, 20),
-    towerMat
-);
-towerMesh.position.set(0, -0.55, 0);
-towerMesh.castShadow = true;
-towerMesh.receiveShadow = true;
-turbine.add(towerMesh);
-
-/* ── Tower maintenance door ─────────────────────────────── */
-const doorMat = makePlasticMat({ albedo: 0x7a8a96, specColor: 0xaabbcc, gloss: 70, fresnelStr: 0.18 });
-const doorMesh = new THREE.Mesh(
-    new THREE.BoxGeometry(0.10, 0.20, 0.015),
-    doorMat
-);
-doorMesh.position.set(0, -2.50, 0.268);
-turbine.add(doorMesh);
-
-const frameMat = makePlasticMat({ albedo: 0x555f6a, specColor: 0x9ab0c0, gloss: 60, fresnelStr: 0.12 });
-const frameMesh = new THREE.Mesh(
-    new THREE.BoxGeometry(0.115, 0.215, 0.012),
-    frameMat
-);
-frameMesh.position.set(0, -2.50, 0.266);
-turbine.add(frameMesh);
-
-const handleMesh = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.006, 0.006, 0.035, 6),
-    boltMat
-);
-handleMesh.rotation.z = DEG(90);
-handleMesh.position.set(0.031, -2.50, 0.278);
-turbine.add(handleMesh);
-
-/* ── Vertical cable conduit along tower ─────────────────── */
-const conduitMat = makePlasticMat({ albedo: 0xb0bcc8, specColor: 0xddeeff, gloss: 60, fresnelStr: 0.12 });
-const conduitMesh = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.018, 0.018, 4.0, 8),
-    conduitMat
-);
-conduitMesh.position.set(0, -0.70, -0.23);
-turbine.add(conduitMesh);
-for (let i = 0; i < 3; i++) {
-    const clamp = new THREE.Mesh(
-        new THREE.BoxGeometry(0.06, 0.025, 0.04),
-        frameMat
-    );
-    clamp.position.set(0, -0.70 + (i - 1) * 1.3, -0.22);
-    turbine.add(clamp);
-}
-
-/* ── Nacelle — rectangular housing, slate grey ──────────── */
-const nacelleMat = makePlasticMat({
-    albedo:     0x697480,
-    specColor:  0xadc4d8,
-    gloss:      80,
-    fresnelStr: 0.28,
-});
-const nacelleMesh = new THREE.Mesh(
-    new THREE.BoxGeometry(1.18, 0.50, 0.62),
-    nacelleMat
-);
-nacelleMesh.position.set(0, 1.96, 0.05);
-nacelleMesh.castShadow = true;
-turbine.add(nacelleMesh);
-
-/* ── Nacelle top cover ──────────────────────────────────── */
-const roofMat = makePlasticMat({ albedo: 0x5f6d7a, specColor: 0x90aabb, gloss: 75, fresnelStr: 0.25 });
-const roofMesh = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.18, 0.40, 1.18, 12, 1, false, 0, Math.PI),
-    roofMat
-);
-roofMesh.rotation.z = DEG(90);
-roofMesh.position.set(0, 2.18, 0.05);
-turbine.add(roofMesh);
-
-/* ── Nacelle ventilation grilles (side louvers) ─────────── */
-const louverMat = makePlasticMat({ albedo: 0x4a5560, specColor: 0x7a9aaa, gloss: 50, fresnelStr: 0.10 });
-for (let i = 0; i < 4; i++) {
-    const louverL = new THREE.Mesh(new THREE.BoxGeometry(0.005, 0.035, 0.15), louverMat);
-    louverL.position.set(-0.592, 1.88 + i * 0.052, 0.05);
-    turbine.add(louverL);
-
-    const louverR = new THREE.Mesh(new THREE.BoxGeometry(0.005, 0.035, 0.15), louverMat);
-    louverR.position.set(0.592, 1.88 + i * 0.052, 0.05);
-    turbine.add(louverR);
-}
-
-/* ── Anemometer + wind vane mast on nacelle top ─────────── */
-const mastMat = makePlasticMat({ albedo: 0x8090a0, specColor: 0xccddee, gloss: 120, fresnelStr: 0.22 });
-const mastMesh = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.012, 0.012, 0.22, 8),
-    mastMat
-);
-mastMesh.position.set(0.35, 2.38, 0.05);
-turbine.add(mastMesh);
-
-const cupMat = makePlasticMat({ albedo: 0xcc3333, specColor: 0xff6666, gloss: 100, fresnelStr: 0.20 });
-for (let i = 0; i < 3; i++) {
-    const armAngle = (i / 3) * TAU;
-    const arm = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.006, 0.006, 0.09, 6),
-        mastMat
-    );
-    arm.rotation.z = DEG(90);
-    arm.rotation.y = armAngle;
-    arm.position.set(
-        0.35 + Math.cos(armAngle) * 0.045,
-        2.49,
-        0.05 + Math.sin(armAngle) * 0.045
-    );
-    turbine.add(arm);
-    const cup = new THREE.Mesh(
-        new THREE.SphereGeometry(0.018, 8, 8),
-        cupMat
-    );
-    cup.position.set(
-        0.35 + Math.cos(armAngle) * 0.09,
-        2.49,
-        0.05 + Math.sin(armAngle) * 0.09
-    );
-    turbine.add(cup);
-}
-
-const vaneMat = makePlasticMat({ albedo: 0xcc3333, specColor: 0xff8888, gloss: 90, fresnelStr: 0.18 });
-const vaneMesh = new THREE.Mesh(
-    new THREE.BoxGeometry(0.005, 0.06, 0.12),
-    vaneMat
-);
-vaneMesh.position.set(0.35, 2.46, -0.01);
-turbine.add(vaneMesh);
-
-/* ── Aviation obstacle / warning beacon ─────────────────── */
-const beaconBaseMesh = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.030, 0.034, 0.038, 10),
-    makePlasticMat({ albedo: 0x444e58, specColor: 0x8899aa, gloss: 80, fresnelStr: 0.15 })
-);
-beaconBaseMesh.position.set(-0.38, 2.28, 0.05);
-turbine.add(beaconBaseMesh);
-
-const beaconMat  = makeBeaconMat(0xff2200);
-const beaconMesh = new THREE.Mesh(
-    new THREE.SphereGeometry(0.030, 12, 12),
-    beaconMat
-);
-beaconMesh.position.set(-0.38, 2.31, 0.05);
-turbine.add(beaconMesh);
-
-const glowMat = new THREE.MeshBasicMaterial({
-    color: 0xff2200,
-    transparent: true,
-    opacity: 0.0,
-    depthWrite: false,
-    blending: THREE.AdditiveBlending,
-});
-const glowMesh = new THREE.Mesh(
-    new THREE.SphereGeometry(0.075, 10, 10),
-    glowMat
-);
-glowMesh.position.copy(beaconMesh.position);
-turbine.add(glowMesh);
-
-/* ── Rotor Group — spins only around Z axis ─────────────── */
-/* Spinner cone lives INSIDE rotorGroup so it co-rotates     */
-/* automatically — no per-frame rotation assignment needed.   */
-const rotorGroup = new THREE.Group();
-rotorGroup.position.set(0, 1.96, 0.60);
-
-/* ── Spinner cone — child of rotorGroup ─────────────────── */
-const spinnerMat = makePlasticMat({
-    albedo:     0x4e5a68,
-    specColor:  0x90aabf,
-    gloss:      120,
-    fresnelStr: 0.32,
-});
-const spinnerMesh = new THREE.Mesh(
-    new THREE.ConeGeometry(0.19, 0.38, 18),
-    spinnerMat
-);
-// Cone tip points along +Z (towards wind), achieved by rotating X -90°
-// Position is relative to rotorGroup origin (0,0,0 = hub centre)
-spinnerMesh.rotation.x = DEG(90);
-spinnerMesh.position.set(0, 0, 0.20);
-rotorGroup.add(spinnerMesh);
-
-/* Hub — sphere ──────────────────────────────────────────── */
-const hubMat = makePlasticMat({
-    albedo:     0x4e5a68,
-    specColor:  0x90aabf,
-    gloss:      115,
-    fresnelStr: 0.32,
-});
-const hubMesh = new THREE.Mesh(
-    new THREE.SphereGeometry(0.19, 18, 18),
-    hubMat
-);
-rotorGroup.add(hubMesh);
-
-/* Blade geometry — tapered airfoil via ExtrudeGeometry ──── */
-const BL = 2.15;
-
-function makeBladeShape() {
-    const s = new THREE.Shape();
-    s.moveTo(-0.14, 0.17);
-    s.bezierCurveTo(-0.13, BL * 0.30, -0.04, BL * 0.72, -0.015, BL);
-    s.lineTo(0.035, BL);
-    s.bezierCurveTo(0.19, BL * 0.58, 0.21, BL * 0.22, 0.21, 0.17);
-    s.closePath();
-    return s;
-}
-
-const bladeGeo = new THREE.ExtrudeGeometry(makeBladeShape(), {
-    steps:            1,
-    depth:            0.040,
-    bevelEnabled:     true,
-    bevelThickness:   0.009,
-    bevelSize:        0.008,
-    bevelSegments:    2,
-});
-
-const bladeMat = makePlasticMat({
-    albedo:     0xd6dde6,
-    specColor:  0xffffff,
-    gloss:      130,
-    fresnelStr: 0.22,
-});
-
-function makeLightningStrip() {
-    const stripShape = new THREE.Shape();
-    stripShape.moveTo(0.16, 0.17);
-    stripShape.bezierCurveTo(0.19, BL * 0.22, 0.19, BL * 0.58, 0.033, BL);
-    stripShape.lineTo(0.035, BL);
-    stripShape.bezierCurveTo(0.19, BL * 0.58, 0.21, BL * 0.22, 0.21, 0.17);
-    stripShape.closePath();
-    return new THREE.ExtrudeGeometry(stripShape, {
-        steps:        1,
-        depth:        0.042,
-        bevelEnabled: false,
-    });
-}
-
-const stripMat = makePlasticMat({
-    albedo:     0x2a3038,
-    specColor:  0x445566,
-    gloss:      60,
-    fresnelStr: 0.08,
-});
-
-for (let i = 0; i < 3; i++) {
-    const pivot = new THREE.Group();
-    pivot.rotation.z = (i / 3) * TAU;
-
-    const blade = new THREE.Mesh(bladeGeo, bladeMat);
-    blade.rotation.y = DEG(-14);
-    blade.position.set(-0.035, 0.18, -0.020);
-    blade.castShadow = true;
-    pivot.add(blade);
-
-    const strip = new THREE.Mesh(makeLightningStrip(), stripMat);
-    strip.rotation.y = DEG(-14);
-    strip.position.set(-0.035, 0.18, -0.020);
-    pivot.add(strip);
-
-    const rootFairing = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.068, 0.075, 0.12, 12),
-        hubMat
-    );
-    rootFairing.rotation.z = DEG(90);
-    rootFairing.position.set(0, 0.17, 0);
-    pivot.add(rootFairing);
-
-    rotorGroup.add(pivot);
-}
-
-turbine.add(rotorGroup);
-
-/* ── Ambient background particles ───────────────────────── */
-const pCount  = isMobile ? 60 : 120;
-const pGeo    = new THREE.BufferGeometry();
-const pPosArr = new Float32Array(pCount * 3);
-for (let i = 0; i < pCount; i++) {
-    const r   = 4.5 + Math.random() * 1.8;
-    const phi = Math.acos(2 * Math.random() - 1);
-    const tht = Math.random() * TAU;
-    pPosArr[i*3]   = r * Math.sin(phi) * Math.cos(tht);
-    pPosArr[i*3+1] = r * Math.sin(phi) * Math.sin(tht);
-    pPosArr[i*3+2] = r * Math.cos(phi);
-}
-pGeo.setAttribute('position', new THREE.BufferAttribute(pPosArr, 3));
-const particles = new THREE.Points(pGeo, new THREE.PointsMaterial({
-    color: 0x88aacc, size: 0.028, transparent: true, opacity: 0.28,
-    depthWrite: false, sizeAttenuation: true,
-}));
-turbine.add(particles);
-
-scene.add(turbine);
-
-/* ═══════════════════════════════════════════════════════════
-   RAYCASTING — hover on static parts
-════════════════════════════════════════════════════════════ */
-const raycaster = new THREE.Raycaster();
-const mouse     = new THREE.Vector2(-9, -9);
-const hTargets  = [towerMesh, nacelleMesh, hubMesh];
-const hoverVals = [0, 0, 0];
-
-function updateMouse(x, y) {
-    const r = canvas.getBoundingClientRect();
-    mouse.x =  ((x - r.left) / r.width)  * 2 - 1;
-    mouse.y = -((y - r.top)  / r.height) * 2 + 1;
-}
-canvas.addEventListener('mousemove',  e => { updateMouse(e.clientX, e.clientY); resetIdle(); });
-canvas.addEventListener('mouseleave', () => mouse.set(-9, -9));
-canvas.addEventListener('touchmove', e => {
-    if (e.touches.length) updateMouse(e.touches[0].clientX, e.touches[0].clientY);
-    resetIdle();
-}, { passive: true });
-
-/* ═══════════════════════════════════════════════════════════
-   RESIZE
-════════════════════════════════════════════════════════════ */
-function resize() {
-    const w = wrap.clientWidth  || 460;
-    const h = wrap.clientHeight || w;
-    camera.aspect = w / h;
-    camera.updateProjectionMatrix();
-    renderer.setSize(w, h);
-}
-new ResizeObserver(resize).observe(wrap);
-resize();
-
-/* ═══════════════════════════════════════════════════════════
-   ANIMATION LOOP
-════════════════════════════════════════════════════════════ */
-const clock   = new THREE.Clock();
-let   prevT   = 0;
-
-// Collect timed materials
 const timedMats = [];
-turbine.traverse(node => {
-    if (node.isMesh && node.material?.uniforms?.uTime !== undefined) {
-        timedMats.push(node.material);
+const hTargets = [];
+
+// Base Turbine Material using Custom Shader
+const turbineMat = new THREE.ShaderMaterial({
+    vertexShader: PLASTIC_VERT,
+    fragmentShader: PLASTIC_FRAG,
+    uniforms: {
+        uScale: { value: 1.0 },
+        uAlbedo: { value: new THREE.Color(0xf4f4f4) },
+        uSpecColor: { value: new THREE.Color(0xffffff) },
+        uGloss: { value: 64.0 },
+        uFresnelStr: { value: 0.2 },
+        uHover: { value: 0.0 },
+        uTime: { value: 0.0 }
     }
 });
+timedMats.push(turbineMat);
 
-// Anemometer cup group for spinning
-const anemometerParts = [];
-turbine.traverse(node => {
-    if (node.isMesh && node.material === cupMat) anemometerParts.push(node);
+/* ═══════════════════════════════════════════════════════════
+   WIND TURBINE ASSEMBLY (FULLY PATCHED AERODYNAMIC GEOMETRY)
+════════════════════════════════════════════════════════════ */
+const turbineGroup = new THREE.Group();
+turbineGroup.position.y = -3.15;
+turbineGroup.scale.set(0.5, 0.5, 0.5);
+scene.add(turbineGroup);
+
+// 1. TOWER
+const towerHeight = 12;
+const towerGeo = new THREE.CylinderGeometry(0.3, 0.6, towerHeight, 32);
+const towerMesh = new THREE.Mesh(towerGeo, turbineMat);
+towerMesh.position.y = towerHeight / 2;
+turbineGroup.add(towerMesh);
+hTargets.push(towerMesh);
+
+// 2. AERODYNAMIC NACELLE (Housing)
+const nacelleGroup = new THREE.Group();
+nacelleGroup.position.y = towerHeight;
+turbineGroup.add(nacelleGroup);
+
+const nacelleGeo = new THREE.CapsuleGeometry(0.4, 1.5, 16, 32);
+nacelleGeo.rotateX(Math.PI / 2); // Lay flat
+nacelleGeo.translate(0, 0, -0.2); // Offset back from tower center
+const nacelleMesh = new THREE.Mesh(nacelleGeo, turbineMat);
+nacelleGroup.add(nacelleMesh);
+hTargets.push(nacelleMesh);
+
+// 3. AVIATION BEACON (Red blinking light on top)
+const glowGeo = new THREE.SphereGeometry(0.08, 16, 16);
+const glowMat = new THREE.MeshBasicMaterial({ color: 0xff0000, transparent: true, opacity: 0 });
+const glowMesh = new THREE.Mesh(glowGeo, glowMat);
+glowMesh.position.set(0, 0.45, -0.5); // Top/back
+nacelleGroup.add(glowMesh);
+
+// 4. ROTOR GROUP
+const rotorGroup = new THREE.Group();
+rotorGroup.position.set(0, 0, 0.9); // Attached to the front of the nacelle
+nacelleGroup.add(rotorGroup);
+
+// 5. AERODYNAMIC SPINNER (Bullet-shaped nose cone)
+const spinnerGeo = new THREE.SphereGeometry(0.45, 32, 16);
+spinnerGeo.scale(1, 1, 1.4); // Stretch into an ellipsoid bullet shape
+const spinnerMesh = new THREE.Mesh(spinnerGeo, turbineMat);
+rotorGroup.add(spinnerMesh);
+hTargets.push(spinnerMesh);
+
+// 6. AERODYNAMIC BLADES (Twisted airfoil profile)
+const bladeLength = 6.5;
+const bladeGeo = new THREE.CylinderGeometry(0.02, 0.25, bladeLength, 16);
+bladeGeo.scale(1, 1, 0.15); // Flatten into a blade shape
+bladeGeo.translate(0, bladeLength / 2 + 0.3, 0); // Move pivot to root
+
+const positions = bladeGeo.attributes.position;
+for (let i = 0; i < positions.count; i++) {
+    const y = positions.getY(i);
+    const twist = (y / bladeLength) * DEG(-15); // Twist 15 degrees root-to-tip
+    const x = positions.getX(i);
+    const z = positions.getZ(i);
+    positions.setX(i, x * Math.cos(twist) - z * Math.sin(twist));
+    positions.setZ(i, x * Math.sin(twist) + z * Math.cos(twist));
+}
+bladeGeo.computeVertexNormals();
+
+const bladeMat = turbineMat.clone(); // Clone uniform settings
+bladeMat.uniforms.uAlbedo.value = new THREE.Color(0xffffff); // Slightly brighter white
+
+for (let i = 0; i < 3; i++) {
+    const blade = new THREE.Mesh(bladeGeo, bladeMat);
+    blade.rotation.z = i * (TAU / 3); // 120 degrees apart
+    rotorGroup.add(blade);
+    hTargets.push(blade);
+}
+
+/* ── Interaction ────────────────────────────────────────── */
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+
+window.addEventListener('mousemove', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
 });
 
-function tick() {
-    requestAnimationFrame(tick);
-    const t  = clock.getElapsedTime();
-    const dt = t - prevT;
-    prevT = t;
+window.addEventListener('resize', () => {
+    camera.aspect = wrap.clientWidth / wrap.clientHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(wrap.clientWidth, wrap.clientHeight);
+});
 
-    // Update sky time
+/* ── Animation Loop ─────────────────────────────────────── */
+const clock = new THREE.Clock();
+
+function animate() {
+    requestAnimationFrame(animate);
+    
+    const dt = clock.getDelta();
+    const t = clock.getElapsedTime();
+
+    // Update sky and materials
     skyMat.uniforms.uTime.value = t;
+    for (const mat of timedMats) mat.uniforms.uTime.value = t;
 
-    // Drift clouds slowly around the sky in a full circle
+    // Drift clouds
     for (const cg of cloudGroups) {
         const a = cg.userData.originAngle + t * cg.userData.driftSpeed;
         const r = cg.userData.radius;
@@ -1159,23 +800,8 @@ function tick() {
         cg.position.z = Math.sin(a) * r;
     }
 
-    for (const mat of timedMats) mat.uniforms.uTime.value = t;
-
     // ── Blade + spinner rotation — only on Z axis ───────────────
-    // spinnerMesh is a child of rotorGroup, so it co-rotates automatically
-    rotorGroup.rotation.z += dt * 0.75;
-
-    // ── Anemometer spins fast (wind instrument) ──────────────────
-    turbine.traverse(node => {
-        if (node.isMesh && node.material === cupMat) {
-            const angle = t * 4.5 + anemometerParts.indexOf(node) * (TAU / 3);
-            node.position.set(
-                0.35 + Math.cos(angle) * 0.09,
-                2.49,
-                0.05 + Math.sin(angle) * 0.09
-            );
-        }
-    });
+    rotorGroup.rotation.z -= dt * 0.75; 
 
     // ── Beacon glow pulse synced with blink ──────────────────────
     const cycle = t % 2.0;
@@ -1186,17 +812,23 @@ function tick() {
     raycaster.setFromCamera(mouse, camera);
     const hits = raycaster.intersectObjects(hTargets, false);
 
-    hTargets.forEach((part, i) => {
-        const hit = hits.length > 0 && hits[0].object === part;
-        hoverVals[i] += ((hit ? 1 : 0) - hoverVals[i]) * 0.10;
-        part.material.uniforms.uHover.value = hoverVals[i];
-        part.material.uniforms.uScale.value = 1.0 + hoverVals[i] * 0.04;
+    // Reset emission
+    hTargets.forEach(obj => {
+        if(obj.material && obj.material.uniforms) {
+            obj.material.uniforms.uHover.value = 0.0;
+        }
     });
 
-    // ── No turbine self-rotation or sway — camera pivots via OrbitControls
+    // Highlight hovered object
+    if (hits.length > 0) {
+        const hitObj = hits[0].object;
+        if(hitObj.material && hitObj.material.uniforms) {
+            hitObj.material.uniforms.uHover.value = 1.0;
+        }
+    }
 
     controls.update();
     renderer.render(scene, camera);
 }
 
-tick();
+animate();
