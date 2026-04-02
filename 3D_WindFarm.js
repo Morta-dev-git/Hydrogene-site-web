@@ -45,7 +45,7 @@ controls.enablePan        = false;
 controls.autoRotate       = true;
 controls.autoRotateSpeed  = 0.5;
 controls.minPolarAngle    = DEG(15);
-controls.maxPolarAngle    = DEG(165);
+controls.maxPolarAngle    = DEG(100); // stop just past horizontal — no looking from underground
 
 let idleTimer;
 const resetIdle = () => {
@@ -121,12 +121,20 @@ const skyMat = new THREE.ShaderMaterial({
 envGroup.add(new THREE.Mesh(skyGeo, skyMat));
 
 /* ── Ground ─────────────────────────────────────────────── */
+// Ground plane — single sided, sits on top of the soil block
 const groundMat = new THREE.MeshLambertMaterial({ color: 0x3b6830 });
 const ground = new THREE.Mesh(new THREE.PlaneGeometry(140, 140), groundMat);
 ground.rotation.x = -Math.PI / 2;
 ground.position.y = -3.15;
 ground.receiveShadow = true;
 envGroup.add(ground);
+
+// Thick soil block — top face starts 0.05 below the ground plane so there is
+// no co-planar overlap and no Z-fighting
+const soilMat = new THREE.MeshLambertMaterial({ color: 0x2a1f0e });
+const soil = new THREE.Mesh(new THREE.BoxGeometry(140, 12, 140), soilMat);
+soil.position.y = -3.15 - 0.05 - 6;  // 0.05 gap clears Z-fighting completely
+envGroup.add(soil);
 
 /* ── Tree builder ───────────────────────────────────────── */
 function makeTree(x, z, scale) {
@@ -205,6 +213,82 @@ for (const [bx, bz] of bushPositions) {
     bush.castShadow = true;
     envGroup.add(bush);
 }
+
+/* ── Horizon relief — continuous terrain ring ───────────── */
+
+function makeHorizonRing(innerR, outerR, yBase, peaks, colorOuter, colorInner) {
+    const segments = peaks.length;
+    const positions = [];
+    const colors    = [];
+    const indices   = [];
+
+    const cOut = new THREE.Color(colorOuter);
+    const cIn  = new THREE.Color(colorInner);
+
+    for (let i = 0; i <= segments; i++) {
+        const idx = i % segments;
+        const a   = (i / segments) * TAU;
+        const h   = peaks[idx];
+        const cos = Math.cos(a), sin = Math.sin(a);
+
+        // outer-bottom
+        positions.push(cos * outerR, yBase,     sin * outerR);
+        colors.push(cOut.r, cOut.g, cOut.b);
+        // outer-top (peak color)
+        positions.push(cos * outerR, yBase + h, sin * outerR);
+        colors.push(cOut.r, cOut.g, cOut.b);
+        // inner-top (darker — shadow side)
+        positions.push(cos * innerR, yBase + h * 0.2, sin * innerR);
+        colors.push(cIn.r, cIn.g, cIn.b);
+        // inner-bottom
+        positions.push(cos * innerR, yBase,     sin * innerR);
+        colors.push(cIn.r, cIn.g, cIn.b);
+    }
+
+    for (let i = 0; i < segments; i++) {
+        const a = i * 4, b = (i + 1) * 4;
+        indices.push(a, b, a+1,  b, b+1, a+1);   // outer face
+        indices.push(a+1, b+1, a+2,  b+1, b+2, a+2); // top cap
+        indices.push(a+2, b+2, a+3,  b+2, b+3, a+3); // inner face
+    }
+
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(positions), 3));
+    geo.setAttribute('color',    new THREE.BufferAttribute(new Float32Array(colors), 3));
+    geo.setIndex(indices);
+    geo.computeVertexNormals();
+
+    // BasicMaterial so fog never bleaches the color
+    return new THREE.Mesh(geo, new THREE.MeshBasicMaterial({
+        vertexColors: true,
+        side: THREE.DoubleSide,
+        fog: false,
+    }));
+}
+
+// Near ridge — dark forest green silhouette, r ≈ 70
+const nearCount = 90;
+const nearPeaks = Array.from({ length: nearCount }, (_, i) => {
+    const a = (i / nearCount) * TAU;
+    return 5
+        + Math.sin(a * 3 + 0.5) * 2.5
+        + Math.sin(a * 7 + 1.2) * 1.2
+        + Math.sin(a * 15 + 2.1) * 0.5;
+});
+const nearRing = makeHorizonRing(62, 78, -3.15, nearPeaks, 0x3a6b2a, 0x2a4e1e);
+envGroup.add(nearRing);
+
+// Far mountain ridge — dark blue-brown, r ≈ 115, tall dramatic peaks
+const farCount = 120;
+const farPeaks = Array.from({ length: farCount }, (_, i) => {
+    const a = (i / farCount) * TAU;
+    return 16
+        + Math.sin(a * 5 + 0.8) * 8
+        + Math.sin(a * 11 + 2.3) * 4
+        + Math.sin(a * 19 + 1.0) * 1.5;
+});
+const farRing = makeHorizonRing(105, 130, -3.15, farPeaks, 0x4a6070, 0x2e4050);
+envGroup.add(farRing);
 
 /* ── Grass tufts ────────────────────────────────────────── */
 const grassMat = new THREE.MeshLambertMaterial({ color: 0x4d8c3a, side: THREE.DoubleSide });
