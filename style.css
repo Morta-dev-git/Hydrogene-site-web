@@ -1115,3 +1115,7 @@ body {
     .org-logos { gap: .85rem; }
     .org-logo { height: 26px; }
 }
+.prog{
+    color: var(--forest);
+    font-style: italic;
+}
